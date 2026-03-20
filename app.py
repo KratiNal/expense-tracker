@@ -3,6 +3,7 @@ import sqlite3
 import csv
 import io
 from datetime import datetime, date
+import os
 
 app = Flask(__name__)
 DB = "expenses.db"
@@ -188,4 +189,5 @@ def today_expenses():
 
 if __name__ == "__main__":
     init_db()
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=False)
+    
