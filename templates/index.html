@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="theme-color" content="#1a73c8"/>
+<title>Family Tracker</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+         background: #f5f6fa; color: #1a1a2e; min-height: 100vh; }
+
+  /* ── Header ── */
+  .header { background: #1a73c8; color: white; padding: 16px 20px;
+            display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 100; }
+  .header h1 { font-size: 18px; font-weight: 600; }
+  .header .month { font-size: 13px; opacity: 0.85; margin-top: 2px; }
+  .avatar-row { display: flex; gap: 8px; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.5);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: 600; cursor: pointer; }
+  .avatar.active { border-color: white; background: rgba(255,255,255,0.2); }
+
+  /* ── Tabs ── */
+  .tabs { display: flex; background: white; border-bottom: 1px solid #e8e8e8; position: sticky; top: 62px; z-index: 99; }
+  .tab { flex: 1; padding: 12px 4px; text-align: center; font-size: 13px;
+         color: #888; cursor: pointer; border-bottom: 2px solid transparent; transition: all .2s; }
+  .tab.active { color: #1a73c8; border-bottom-color: #1a73c8; font-weight: 500; }
+
+  /* ── Content ── */
+  .page { display: none; padding: 16px; }
+  .page.active { display: block; }
+
+  /* ── Cards ── */
+  .card { background: white; border-radius: 12px; padding: 16px; margin-bottom: 12px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.07); }
+  .card-title { font-size: 13px; color: #888; margin-bottom: 4px; }
+  .card-value { font-size: 24px; font-weight: 600; color: #1a1a2e; }
+  .card-sub { font-size: 12px; color: #aaa; margin-top: 2px; }
+
+  /* ── Summary grid ── */
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+
+  /* ── Log form ── */
+  .form-group { margin-bottom: 14px; }
+  .form-group label { display: block; font-size: 13px; color: #555; margin-bottom: 6px; font-weight: 500; }
+  .form-group input, .form-group select {
+    width: 100%; padding: 12px 14px; border: 1.5px solid #e0e0e0;
+    border-radius: 10px; font-size: 16px; outline: none; transition: border .2s;
+    background: white; color: #1a1a2e; }
+  .form-group input:focus, .form-group select:focus { border-color: #1a73c8; }
+  .who-row { display: flex; gap: 8px; margin-bottom: 14px; }
+  .who-btn { flex: 1; padding: 10px; border: 1.5px solid #e0e0e0; border-radius: 10px;
+             background: white; font-size: 14px; cursor: pointer; transition: all .2s; color: #1a1a2e; }
+  .who-btn.active { border-color: #1a73c8; background: #e8f0fe; color: #1a73c8; font-weight: 500; }
+  .submit-btn { width: 100%; padding: 14px; background: #1a73c8; color: white;
+                border: none; border-radius: 10px; font-size: 16px; font-weight: 600;
+                cursor: pointer; transition: background .2s; }
+  .submit-btn:hover { background: #1557a0; }
+  .submit-btn:active { transform: scale(0.98); }
+
+  /* ── Toast ── */
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+           background: #1a1a2e; color: white; padding: 12px 20px; border-radius: 24px;
+           font-size: 14px; transition: transform .3s; z-index: 999; white-space: nowrap; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── Budget bars ── */
+  .budget-item { margin-bottom: 14px; }
+  .budget-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+  .budget-label { font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+  .budget-amounts { font-size: 12px; color: #888; }
+  .bar-bg { height: 8px; background: #f0f0f0; border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width .5s ease; }
+  .bar-ok   { background: #34a853; }
+  .bar-warn { background: #fbbc04; }
+  .bar-over { background: #ea4335; }
+
+  /* ── Expense list ── */
+  .expense-item { display: flex; align-items: center; gap: 12px; padding: 12px 0;
+                  border-bottom: 1px solid #f5f5f5; }
+  .expense-item:last-child { border-bottom: none; }
+  .exp-icon { width: 40px; height: 40px; border-radius: 10px; display: flex;
+              align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .exp-info { flex: 1; }
+  .exp-note { font-size: 14px; font-weight: 500; }
+  .exp-meta { font-size: 12px; color: #aaa; margin-top: 2px; }
+  .exp-amount { font-size: 15px; font-weight: 600; color: #1a1a2e; }
+  .exp-delete { font-size: 18px; color: #ddd; cursor: pointer; padding: 4px; }
+  .exp-delete:hover { color: #ea4335; }
+
+  /* ── Settings ── */
+  .budget-input-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .budget-input-row label { font-size: 14px; flex: 1; display: flex; align-items: center; gap: 6px; }
+  .budget-input-row input { width: 110px; padding: 8px 10px; border: 1.5px solid #e0e0e0;
+                             border-radius: 8px; font-size: 14px; text-align: right; }
+  .save-btn { width: 100%; padding: 12px; background: #34a853; color: white;
+              border: none; border-radius: 10px; font-size: 15px; font-weight: 600;
+              cursor: pointer; margin-top: 6px; }
+  .export-btn { width: 100%; padding: 12px; background: white; color: #1a73c8;
+                border: 1.5px solid #1a73c8; border-radius: 10px; font-size: 15px;
+                font-weight: 600; cursor: pointer; margin-top: 10px; }
+
+  /* ── Empty state ── */
+  .empty { text-align: center; padding: 40px 20px; color: #bbb; }
+  .empty .icon { font-size: 40px; margin-bottom: 10px; }
+  .empty p { font-size: 14px; }
+
+  /* ── Alert badge ── */
+  .alert-badge { display: inline-block; background: #fce8e6; color: #c5221f;
+                 font-size: 11px; font-weight: 600; padding: 2px 7px;
+                 border-radius: 20px; margin-left: 6px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header h1" style="font-size:18px;font-weight:600;">Family Tracker 💰</div>
+    <div class="month" id="header-month"></div>
+  </div>
+  <div class="avatar-row">
+    <div class="avatar active" id="avatar-you" onclick="setUser('You', this)">You</div>
+    <div class="avatar" id="avatar-him" onclick="setUser('Husband', this)">Him</div>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('log')">Log</div>
+  <div class="tab" onclick="showTab('dashboard')">Dashboard</div>
+  <div class="tab" onclick="showTab('history')">History</div>
+  <div class="tab" onclick="showTab('settings')">Settings</div>
+</div>
+
+<!-- ── LOG ── -->
+<div class="page active" id="page-log">
+  <div class="card" style="margin-top:4px;">
+    <div class="form-group">
+      <label>Amount (₹)</label>
+      <input type="number" id="amount" placeholder="0" inputmode="decimal" autofocus/>
+    </div>
+    <div class="form-group">
+      <label>Category</label>
+      <select id="category">
+        <option value="groceries">🛒 Groceries</option>
+        <option value="food">🍽 Food & Dining</option>
+        <option value="transport">🚗 Transport</option>
+        <option value="bills">💡 Bills</option>
+        <option value="health">💊 Health</option>
+        <option value="shopping">🛍 Shopping</option>
+        <option value="education">📚 Education</option>
+        <option value="other">📌 Other</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Note (optional)</label>
+      <input type="text" id="note" placeholder="e.g. Big Bazaar, Swiggy order..."/>
+    </div>
+    <label style="font-size:13px;color:#555;font-weight:500;display:block;margin-bottom:8px;">Logged by</label>
+    <div class="who-row">
+      <button class="who-btn active" id="btn-you" onclick="setUser('You', null)">You (Kratika)</button>
+      <button class="who-btn" id="btn-him" onclick="setUser('Husband', null)">Husband</button>
+    </div>
+    <button class="submit-btn" onclick="logExpense()">Add Expense</button>
+  </div>
+
+  <!-- Quick summary strip -->
+  <div class="card">
+    <div class="card-title">Today's total</div>
+    <div class="card-value" id="today-total">₹0</div>
+    <div class="card-sub" id="today-count">0 expenses logged today</div>
+  </div>
+</div>
+
+<!-- ── DASHBOARD ── -->
+<div class="page" id="page-dashboard">
+  <div class="summary-grid">
+    <div class="card">
+      <div class="card-title">Month spent</div>
+      <div class="card-value" id="dash-spent">₹0</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Month budget</div>
+      <div class="card-value" id="dash-budget">₹0</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="font-size:14px;font-weight:600;margin-bottom:14px;">Spending by category</div>
+    <canvas id="donut-chart" height="200"></canvas>
+  </div>
+
+  <div class="card">
+    <div style="font-size:14px;font-weight:600;margin-bottom:14px;">Budget progress</div>
+    <div id="budget-bars"></div>
+  </div>
+</div>
+
+<!-- ── HISTORY ── -->
+<div class="page" id="page-history">
+  <div class="card">
+    <div style="font-size:14px;font-weight:600;margin-bottom:12px;">This month's expenses</div>
+    <div id="expense-list"></div>
+  </div>
+</div>
+
+<!-- ── SETTINGS ── -->
+<div class="page" id="page-settings">
+  <div class="card">
+    <div style="font-size:14px;font-weight:600;margin-bottom:14px;">Monthly budgets (₹)</div>
+    <div id="budget-inputs"></div>
+    <button class="save-btn" onclick="saveBudgets()">Save Budgets</button>
+  </div>
+  <div class="card">
+    <div style="font-size:14px;font-weight:600;margin-bottom:6px;">Export</div>
+    <div style="font-size:13px;color:#888;margin-bottom:10px;">Download this month's expenses as CSV</div>
+    <button class="export-btn" onclick="exportCSV()">Download CSV</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const CAT_EMOJI = {
+  groceries:"🛒", food:"🍽", transport:"🚗",
+  bills:"💡", health:"💊", shopping:"🛍", education:"📚", other:"📌"
+};
+const CAT_COLOR = {
+  groceries:"#4CAF50", food:"#FF7043", transport:"#42A5F5",
+  bills:"#FFA726", health:"#EC407A", shopping:"#AB47BC", education:"#26C6DA", other:"#BDBDBD"
+};
+
+let currentUser = "You";
+let donutChart = null;
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function fmt(n) { return "₹" + Number(n).toLocaleString("en-IN"); }
+
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2500);
+}
+
+function setUser(name, avatarEl) {
+  currentUser = name;
+  document.querySelectorAll(".avatar").forEach(a => a.classList.remove("active"));
+  document.querySelectorAll(".who-btn").forEach(b => b.classList.remove("active"));
+  if (avatarEl) avatarEl.classList.add("active");
+  document.getElementById("btn-you").classList.toggle("active", name === "You");
+  document.getElementById("btn-him").classList.toggle("active", name === "Husband");
+  document.getElementById("avatar-you").classList.toggle("active", name === "You");
+  document.getElementById("avatar-him").classList.toggle("active", name === "Husband");
+}
+
+function showTab(tab) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  document.getElementById("page-" + tab).classList.add("active");
+  event.target.classList.add("active");
+  if (tab === "dashboard") loadDashboard();
+  if (tab === "history") loadHistory();
+  if (tab === "settings") loadSettings();
+}
+
+// ── Header month ─────────────────────────────────────────────────────────────
+function setHeaderMonth() {
+  const now = new Date();
+  document.getElementById("header-month").textContent =
+    now.toLocaleString("en-IN", { month: "long", year: "numeric" });
+}
+
+// ── Log expense ───────────────────────────────────────────────────────────────
+async function logExpense() {
+  const amount = parseFloat(document.getElementById("amount").value);
+  const category = document.getElementById("category").value;
+  const note = document.getElementById("note").value.trim();
+
+  if (!amount || amount <= 0) { showToast("Please enter a valid amount"); return; }
+
+  const res = await fetch("/api/expenses", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ amount, category, note, logged_by: currentUser })
+  });
+  const data = await res.json();
+
+  if (data.success) {
+    const pct = Math.round((data.spent / data.budget) * 100);
+    showToast(`Logged ${fmt(amount)} · ${category} (${pct}% of budget)`);
+    document.getElementById("amount").value = "";
+    document.getElementById("note").value = "";
+    loadToday();
+  }
+}
+
+// ── Today summary ─────────────────────────────────────────────────────────────
+async function loadToday() {
+  const res = await fetch("/api/today");
+  const data = await res.json();
+  const total = data.reduce((s, e) => s + e.amount, 0);
+  document.getElementById("today-total").textContent = fmt(total);
+  document.getElementById("today-count").textContent =
+    data.length + " expense" + (data.length !== 1 ? "s" : "") + " logged today";
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+async function loadDashboard() {
+  const res = await fetch("/api/summary");
+  const data = await res.json();
+
+  const totalSpent  = data.reduce((s, c) => s + c.spent, 0);
+  const totalBudget = data.reduce((s, c) => s + c.budget, 0);
+  document.getElementById("dash-spent").textContent  = fmt(totalSpent);
+  document.getElementById("dash-budget").textContent = fmt(totalBudget);
+
+  // Donut chart
+  const active = data.filter(c => c.spent > 0);
+  if (donutChart) donutChart.destroy();
+  const ctx = document.getElementById("donut-chart").getContext("2d");
+  donutChart = new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      labels: active.map(c => CAT_EMOJI[c.category] + " " + c.category),
+      datasets: [{
+        data: active.map(c => c.spent),
+        backgroundColor: active.map(c => CAT_COLOR[c.category]),
+        borderWidth: 2, borderColor: "#fff"
+      }]
+    },
+    options: {
+      cutout: "65%",
+      plugins: { legend: { position: "bottom", labels: { font: { size: 12 }, padding: 10 } } }
+    }
+  });
+
+  // Budget bars
+  const bars = document.getElementById("budget-bars");
+  bars.innerHTML = data.map(c => {
+    if (c.spent === 0) return "";
+    const pct = Math.min(Math.round((c.spent / c.budget) * 100), 100);
+    const cls = pct >= 100 ? "bar-over" : pct >= 80 ? "bar-warn" : "bar-ok";
+    const alert = pct >= 100 ? `<span class="alert-badge">Over!</span>` :
+                  pct >= 80  ? `<span class="alert-badge" style="background:#fef9e7;color:#b45309;">80%+</span>` : "";
+    return `
+      <div class="budget-item">
+        <div class="budget-row">
+          <span class="budget-label">${CAT_EMOJI[c.category]} ${c.category}${alert}</span>
+          <span class="budget-amounts">${fmt(c.spent)} / ${fmt(c.budget)}</span>
+        </div>
+        <div class="bar-bg"><div class="bar-fill ${cls}" style="width:${pct}%"></div></div>
+      </div>`;
+  }).join("");
+}
+
+// ── History ───────────────────────────────────────────────────────────────────
+async function loadHistory() {
+  const res = await fetch("/api/expenses");
+  const data = await res.json();
+  const list = document.getElementById("expense-list");
+
+  if (data.length === 0) {
+    list.innerHTML = `<div class="empty"><div class="icon">📭</div><p>No expenses this month yet</p></div>`;
+    return;
+  }
+
+  list.innerHTML = data.map(e => {
+    const d = new Date(e.ts);
+    const time = d.toLocaleString("en-IN", { day:"numeric", month:"short", hour:"2-digit", minute:"2-digit" });
+    return `
+      <div class="expense-item">
+        <div class="exp-icon" style="background:${CAT_COLOR[e.category]}22">${CAT_EMOJI[e.category]}</div>
+        <div class="exp-info">
+          <div class="exp-note">${e.note || e.category}</div>
+          <div class="exp-meta">${e.category} · ${e.logged_by} · ${time}</div>
+        </div>
+        <div class="exp-amount">${fmt(e.amount)}</div>
+        <div class="exp-delete" onclick="deleteExpense(${e.id})">✕</div>
+      </div>`;
+  }).join("");
+}
+
+async function deleteExpense(id) {
+  if (!confirm("Remove this expense?")) return;
+  await fetch("/api/expenses/" + id, { method: "DELETE" });
+  showToast("Expense removed");
+  loadHistory();
+}
+
+// ── Settings ──────────────────────────────────────────────────────────────────
+async function loadSettings() {
+  const res = await fetch("/api/budgets");
+  const data = await res.json();
+  const map = {};
+  data.forEach(b => map[b.category] = b.amount);
+  const cats = ["groceries","food","transport","bills","health","shopping","education","other"];
+  document.getElementById("budget-inputs").innerHTML = cats.map(cat => `
+    <div class="budget-input-row">
+      <label>${CAT_EMOJI[cat]} ${cat}</label>
+      <input type="number" id="bgt-${cat}" value="${map[cat] || 2000}" inputmode="numeric"/>
+    </div>`).join("");
+}
+
+async function saveBudgets() {
+  const cats = ["groceries","food","transport","bills","health","shopping","education","other"];
+  for (const cat of cats) {
+    const val = parseFloat(document.getElementById("bgt-" + cat).value);
+    if (val > 0) {
+      await fetch("/api/budgets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category: cat, amount: val })
+      });
+    }
+  }
+  showToast("Budgets saved!");
+}
+
+function exportCSV() {
+  const month = new Date().toISOString().slice(0, 7);
+  window.location.href = "/api/export?month=" + month;
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+setHeaderMonth();
+loadToday();
+</script>
+</body>
+</html>
