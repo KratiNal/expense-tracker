@@ -9,16 +9,16 @@ app = Flask(__name__)
 DB = "expenses.db"
 
 # ── Categories & default budgets ──────────────────────────────────────────────
-CATEGORIES = ["groceries", "food", "transport", "bills", "health", "shopping", "education", "other"]
+CATEGORIES = ["groceries", "food", "rent", "bills", "health", "shopping", "entertainment", "other"]
 
 DEFAULT_BUDGETS = {
     "groceries": 8000,
     "food":      4000,
-    "transport": 3000,
+    "rent": 3000,
     "bills":     5000,
     "health":    2000,
     "shopping":  3000,
-    "education": 2000,
+    "entertainment": 2000,
     "other":     2000,
 }
 

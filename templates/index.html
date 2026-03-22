@@ -147,11 +147,11 @@
       <select id="category">
         <option value="groceries">🛒 Groceries</option>
         <option value="food">🍽 Food & Dining</option>
-        <option value="transport">🚗 Transport</option>
+        <option value="rent">🚗 rent</option>
         <option value="bills">💡 Bills</option>
         <option value="health">💊 Health</option>
         <option value="shopping">🛍 Shopping</option>
-        <option value="education">📚 Education</option>
+        <option value="entertainment">📚 entertainment</option>
         <option value="other">📌 Other</option>
       </select>
     </div>
@@ -225,12 +225,12 @@
 
 <script>
 const CAT_EMOJI = {
-  groceries:"🛒", food:"🍽", transport:"🚗",
-  bills:"💡", health:"💊", shopping:"🛍", education:"📚", other:"📌"
+  groceries:"🛒", food:"🍽", rent:"🚗",
+  bills:"💡", health:"💊", shopping:"🛍", entertainment:"📚", other:"📌"
 };
 const CAT_COLOR = {
-  groceries:"#4CAF50", food:"#FF7043", transport:"#42A5F5",
-  bills:"#FFA726", health:"#EC407A", shopping:"#AB47BC", education:"#26C6DA", other:"#BDBDBD"
+  groceries:"#4CAF50", food:"#FF7043", rent:"#42A5F5",
+  bills:"#FFA726", health:"#EC407A", shopping:"#AB47BC", entertainment:"#26C6DA", other:"#BDBDBD"
 };
 
 let currentUser = "You";
@@ -397,7 +397,7 @@ async function loadSettings() {
   const data = await res.json();
   const map = {};
   data.forEach(b => map[b.category] = b.amount);
-  const cats = ["groceries","food","transport","bills","health","shopping","education","other"];
+  const cats = ["groceries","food","rent","bills","health","shopping","entertainment","other"];
   document.getElementById("budget-inputs").innerHTML = cats.map(cat => `
     <div class="budget-input-row">
       <label>${CAT_EMOJI[cat]} ${cat}</label>
@@ -406,7 +406,7 @@ async function loadSettings() {
 }
 
 async function saveBudgets() {
-  const cats = ["groceries","food","transport","bills","health","shopping","education","other"];
+  const cats = ["groceries","food","rent","bills","health","shopping","entertainment","other"];
   for (const cat of cats) {
     const val = parseFloat(document.getElementById("bgt-" + cat).value);
     if (val > 0) {
